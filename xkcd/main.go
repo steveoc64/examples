@@ -83,7 +83,7 @@ func (x *XKCD) downloadImage(url string) {
 	}
 	defer response.Body.Close()
 
-	file, err := ioutil.TempFile(os.TempDir(), "xkcd.png")
+	file, err := ioutil.TempFile(os.TempDir(), "xkcd.jpg")
 	if err != nil {
 		log.Fatal(err)
 	}
