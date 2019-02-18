@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/steveoc64/memdebug"
+
 	"fyne.io/fyne"
 	"fyne.io/fyne/app"
 	"fyne.io/fyne/layout"
@@ -36,6 +38,8 @@ func welcome(app fyne.App) {
 }
 
 func main() {
+	memdebug.Profile()
+	memdebug.WriteProfile()
 	apps = make(map[string]func(fyne.App))
 	apps["calculator"] = calculator.Show
 	apps["fractal"] = fractal.Show

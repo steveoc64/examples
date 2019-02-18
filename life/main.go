@@ -69,7 +69,7 @@ func (b *board) nextGen() {
 			b.cells[y][x] = b.backing[y][x]
 		}
 	}
-	memdebug.Print(t1, "generated new state", b)
+	memdebug.Print(t1, "generated new state", b.width, b.height)
 }
 
 func (b *board) load() {
@@ -183,6 +183,7 @@ func (g *game) Hide() {
 }
 
 func (g *game) ApplyTheme() {
+	memdebug.Print(time.Now(), "gameRenderer.Layout")
 	widget.Renderer(g).ApplyTheme()
 }
 
@@ -201,6 +202,7 @@ func (g *gameRenderer) MinSize() fyne.Size {
 }
 
 func (g *gameRenderer) Layout(size fyne.Size) {
+	memdebug.Print(time.Now(), "gameRenderer.Layout")
 	g.render.Resize(size)
 }
 
