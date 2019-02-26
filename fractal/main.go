@@ -1,23 +1,33 @@
 package fractal
 
 import (
+	"image"
 	"image/color"
+	"image/draw"
 	"math"
 
 	"fyne.io/fyne"
 	"fyne.io/fyne/canvas"
 	"fyne.io/fyne/theme"
+	"github.com/anthonynsimon/bild/adjust"
+	"github.com/anthonynsimon/bild/effect"
 )
 
 type fractal struct {
 	currIterations          uint
 	currScale, currX, currY float64
 
-	window fyne.Window
-	canvas fyne.CanvasObject
+	window       fyne.Window
+	canvas       fyne.CanvasObject
+	backingStore draw.Image
+	mode         rune
+	dirty        bool
 }
 
 func (f *fractal) Layout(objects []fyne.CanvasObject, size fyne.Size) {
+	rect := image.Rect(0, 0, size.Width, size.Height)
+	f.backingStore = image.NewRGBA(rect)
+	f.dirty = true
 	f.canvas.Resize(size)
 }
 
@@ -78,10 +88,18 @@ func (f *fractal) mandelbrot(px, py, w, h int) color.Color {
 }
 
 func (f *fractal) fractalRune(r rune) {
-	if r == '+' {
+	switch r {
+	case '+':
 		f.currScale /= 1.1
-	} else if r == '-' {
+		f.dirty = true
+	case '-':
 		f.currScale *= 1.1
+		f.dirty = true
+	case '1', '2', '3', '4', '5', '6':
+		f.mode = r
+	case ' ':
+		f.mode = ' '
+		f.dirty = true
 	}
 
 	f.refresh()
@@ -91,15 +109,48 @@ func (f *fractal) fractalKey(ev *fyne.KeyEvent) {
 	delta := f.currScale * 0.2
 	if ev.Name == fyne.KeyUp {
 		f.currY -= delta
+		f.dirty = true
 	} else if ev.Name == fyne.KeyDown {
 		f.currY += delta
+		f.dirty = true
 	} else if ev.Name == fyne.KeyLeft {
 		f.currX += delta
+		f.dirty = true
 	} else if ev.Name == fyne.KeyRight {
 		f.currX -= delta
+		f.dirty = true
 	}
+	if f.dirty {
+		f.refresh()
 
-	f.refresh()
+	}
+}
+
+func (f *fractal) render(w, h int) image.Image {
+	if f.dirty {
+		for x := 0; x < w; x++ {
+			for y := 0; y < h; y++ {
+				f.backingStore.Set(x, y, f.mandelbrot(x, y, w, h))
+			}
+		}
+	}
+	f.dirty = false
+	switch f.mode {
+	case '1':
+		f.backingStore = adjust.Hue(f.backingStore, 8)
+	case '2':
+		//f.backingStore = blur.Box(f.backingStore, 3.0)
+		f.backingStore = effect.Sharpen(f.backingStore)
+	case '3':
+		f.backingStore = effect.Dilate(f.backingStore, 3)
+	case '4':
+		f.backingStore = effect.Emboss(f.backingStore)
+	case '5':
+		f.backingStore = effect.Erode(f.backingStore, 3)
+	case '6':
+		f.backingStore = effect.Sobel(f.backingStore)
+	}
+	return f.backingStore
 }
 
 // Show loads a Mandelbrot fractal example window for the specified app context
@@ -107,7 +158,8 @@ func Show(app fyne.App) {
 	window := app.NewWindow("Fractal")
 	window.SetPadded(false)
 	fractal := &fractal{window: window}
-	fractal.canvas = canvas.NewRasterWithPixels(fractal.mandelbrot)
+	//fractal.canvas = canvas.NewRasterWithPixels(fractal.mandelbrot)
+	fractal.canvas = canvas.NewRaster(fractal.render)
 
 	fractal.currIterations = 100
 	fractal.currScale = 1.0
